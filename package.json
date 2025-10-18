@@ -1,5 +1,20 @@
 {
+  "name": "bootstrapping-reality",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "verify": "tsx src/verify-setup.ts"
+  },
   "dependencies": {
-    "@cubby/js": "^1.0.2"
+    "@cubby/js": "^1.0.2",
+    "@anthropic-ai/sdk": "^0.32.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2"
   }
 }
