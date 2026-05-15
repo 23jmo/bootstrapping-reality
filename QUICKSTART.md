@@ -1,35 +1,58 @@
-# Quick Start Guide
+# Quick Start Guide - Whisper Voice Control
 
-## ✅ What's Built
+## ✅ What's Been Built
 
-You now have a **working voice computer control CLI** that:
-- Streams voice from Cubby in real-time
-- Sends commands to Claude Computer Use API
-- Logs all actions to console
+A **working voice computer control system** using:
+- **OpenAI Whisper** for voice transcription
+- **Claude Computer Use** for intelligent automation
+- Simple CLI interface (no complex UI yet)
 
-## 🚀 How to Run
+## 🚀 Setup in 3 Steps
 
-### 1. Get Your Anthropic API Key
+### Step 1: Get API Keys
+
+#### OpenAI (for Whisper)
+1. Go to https://platform.openai.com/api-keys
+2. Create a new API key
+3. Copy it (starts with `sk-proj-...`)
+
+#### Anthropic (for Claude)
 1. Go to https://console.anthropic.com/
-2. Sign up / sign in
-3. Create an API key
-4. Copy the key
+2. Create a new API key
+3. Copy it (starts with `sk-ant-...`)
 
-### 2. Configure Environment
-The `.env` file needs your API key. Since it's gitignored, you'll need to add it:
+### Step 2: Configure Environment
 
 ```bash
-# Edit .env and replace 'your_key_here' with your actual key
-ANTHROPIC_API_KEY=sk-ant-xxxxx...
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your keys
+nano .env
 ```
 
-### 3. Start Cubby
-Make sure Cubby is running on your Mac:
-- Open Cubby app
-- Ensure it's recording audio
-- Verify it's on http://localhost:3030
+Your `.env` should look like:
+```bash
+OPENAI_API_KEY=sk-proj-your-actual-key-here
+ANTHROPIC_API_KEY=sk-ant-your-actual-key-here
+DISPLAY_WIDTH=1920
+DISPLAY_HEIGHT=1080
+```
 
-### 4. Run the App
+### Step 3: Grant Microphone Permission
+
+**macOS:**
+1. Open **System Settings**
+2. Go to **Privacy & Security > Microphone**
+3. Enable for your **Terminal** (or iTerm, etc.)
+4. **Restart your terminal**
+
+**Linux:**
+- Usually works by default
+- Check with: `arecord -l`
+
+## 🎤 Run It
+
 ```bash
 npm run dev
 ```
@@ -37,85 +60,108 @@ npm run dev
 You should see:
 ```
 🎙️  Voice Computer Control - Starting...
-📡 Connecting to Cubby at http://localhost:3030...
-✅ Connected to Cubby
-🎤 Listening for voice commands...
+
+🎤 Starting microphone capture...
+🎤 Microphone started (16kHz, mono)
+✅ Listening for voice commands...
+   (Speak clearly and pause after each command)
+
+════════════════════════════════════════════════════════════
 ```
 
-### 5. Speak Commands
-Try saying:
-- "Open Chrome"
-- "Search for GitHub"
-- "Click the login button"
+## 💬 Try These Commands
 
-Watch the console for Claude's responses!
+Speak these phrases (speak clearly, then wait):
 
-## 📁 Project Structure
+1. **"Open Chrome"** - Opens your browser
+2. **"Go to GitHub"** - Navigates to GitHub
+3. **"Type hello world"** - Types text
+4. **"Click the search button"** - Clicks elements
+5. **"Take a screenshot"** - Screenshots current view
 
-```
-bootstrapping-reality/
-├── src/
-│   ├── index.ts           # Main entry - voice streaming
-│   ├── computer-use.ts    # Claude integration
-│   └── types.ts           # TypeScript types
-├── .env                   # Your API keys (NOT in git)
-├── package.json           # Dependencies
-├── tsconfig.json          # TypeScript config
-└── README.md              # Full documentation
-```
+## 📝 How It Works
 
-## 🎨 Next Steps (UI Layer)
-
-When you're ready to add the visual overlay:
-
-1. **Add Electron**
-```bash
-npm install electron electron-builder
-```
-
-2. **Create overlay window**
-- Transparent, always-on-top
-- Canvas for pointer trails
-- Speech bubbles for Claude's thoughts
-
-3. **Connect IPC**
-- Main process ↔️ Renderer
-- Send action events to UI
-- Animate in real-time
+1. You speak (minimum 3 seconds)
+2. Audio buffers and sends to Whisper
+3. Whisper transcribes to text
+4. Claude understands and plans actions
+5. Computer Use executes mouse/keyboard
+6. Results show in console
 
 ## 🐛 Troubleshooting
 
-**"Error connecting to Cubby"**
-- Cubby app must be running
-- Check http://localhost:3030 in browser
+### "OPENAI_API_KEY not set"
+✅ Create `.env` file from `.env.example`  
+✅ Add your actual API key (not `your_key_here`)
 
-**"ANTHROPIC_API_KEY not set"**
-- Edit `.env` file
-- Add your real API key
+### "Audio stream error"
+✅ Grant microphone permissions  
+✅ Restart terminal after granting  
+✅ Check no other app is using mic
 
-**Voice not working**
-- Check Cubby has mic access
-- Try speaking louder/clearer
-- Wait for final transcription
+### Nothing transcribes
+✅ Speak for at least 3 seconds  
+✅ Speak louder/closer to mic  
+✅ Check OpenAI API has credits
 
-## 💡 Tips
+### "mic" package error on macOS
+```bash
+# Install SoX audio library
+brew install sox
+```
 
-- Commands work best as clear instructions
-- Claude can see your screen (via screenshots)
-- Be specific: "click the blue button" not "click that"
-- You can chain actions: "open chrome and go to github"
+## 💰 Costs
 
-## 📝 Current Limitations
+- **Whisper**: $0.006/minute (~$0.36/hour)
+- **Claude**: $3-8 per 100 actions
+- **Total**: Very affordable for personal use
 
-This is a **minimal prototype**:
-- ✅ Voice input works
-- ✅ Claude processes commands
-- ⚠️ Actions are logged but not fully executed yet
-- ❌ No visual UI yet
+## 🎯 Tips for Best Results
 
-The Computer Use API integration is there, but you may need to configure additional permissions for full execution.
+1. **Speak naturally** - Don't rush, normal pace
+2. **Be specific** - "Click the blue submit button on the right"
+3. **Wait for buffering** - Minimum 3 seconds of speech
+4. **Pause between commands** - Wait for "Ready for next command"
+5. **Give context** - "Open Chrome and go to github.com" better than two commands
+
+## 🛑 Stop the App
+
+Press **Ctrl+C**:
+```
+^C
+
+👋 Shutting down gracefully...
+🎤 Microphone stopped
+✅ Cleanup complete. Goodbye!
+```
+
+## 📁 What Got Created
+
+```
+src/
+  index.ts          - Main app (audio → Whisper → Claude)
+  audio-capture.ts  - Microphone capture
+  whisper.ts        - Whisper API integration
+  computer-use.ts   - Claude Computer Use
+  types.ts          - TypeScript types
+  mic.d.ts          - Type declarations
+```
+
+## 🎨 Next Steps
+
+Once this works:
+1. Add Electron for visual overlay
+2. Add Cubby for screen context
+3. Implement pointer trails/animations
+4. Add speech bubbles showing Claude's thoughts
+
+## 🆘 Still Having Issues?
+
+1. Verify API keys are correct
+2. Check you have API credits
+3. Test microphone with `arecord -d 5 test.wav` (Linux) or QuickTime (Mac)
+4. Check console for specific error messages
 
 ---
 
-**Have fun bootstrapping reality! 🚀**
-
+**Ready to try?** Run `npm run dev` and start speaking! 🎤

@@ -4,17 +4,23 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
+    "chat": "tsx src/chat-test.ts",
     "build": "tsc",
     "verify": "tsx src/verify-setup.ts"
   },
   "dependencies": {
-    "@cubby/js": "^1.0.2",
     "@anthropic-ai/sdk": "^0.32.1",
-    "dotenv": "^16.4.5"
+    "@cubby/js": "^1.0.2",
+    "dotenv": "^16.4.5",
+    "mic": "^2.1.2",
+    "node-record-lpcm16": "^1.0.1",
+    "openai": "^6.5.0",
+    "robotjs": "^0.6.0",
+    "sharp": "^0.34.4"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
     "@types/node": "^22.10.1",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

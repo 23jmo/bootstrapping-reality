@@ -1,17 +1,48 @@
 // Voice Computer Control - Main Entry Point
-// Streams voice transcriptions from Cubby and sends them to Claude Computer Use
+// Uses Whisper for voice transcription and Claude Computer Use for actions
 
 import "dotenv/config";
-import { createClient } from "@cubby/js";
+import { AudioCapture } from "./audio-capture.js";
+import { WhisperTranscriber } from "./whisper.js";
 import { executeVoiceCommand } from "./computer-use.js";
+import { checkAccessibilityPermissions } from "./computer-actions-applescript.js";
 
 /**
- * Main function - starts voice listening and command execution
+ * Main application function
+ * Coordinates audio capture, transcription, and command execution
  */
 async function main() {
   console.log("🎙️  Voice Computer Control - Starting...\n");
 
-  // Check for Anthropic API key
+  // Check for Accessibility permissions (required for computer control)
+  console.log("🔐 Checking Accessibility permissions...");
+  if (!checkAccessibilityPermissions()) {
+    console.error("❌ Error: Accessibility permissions not granted\n");
+    console.error("To grant permissions:");
+    console.error(
+      "  1. Open System Settings > Privacy & Security > Accessibility"
+    );
+    console.error("  2. Click the lock icon to make changes");
+    console.error("  3. Add your Terminal app (or iTerm, etc.) to the list");
+    console.error("  4. Toggle it ON");
+    console.error("  5. Restart this application\n");
+    console.error(
+      "⚠️  These permissions allow Claude to control your mouse and keyboard."
+    );
+    console.error("   Only enable this if you trust the system.\n");
+    process.exit(1);
+  }
+  console.log("✅ Accessibility permissions granted\n");
+
+  // Verify required API keys
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("❌ Error: OPENAI_API_KEY not set in .env file");
+    console.error(
+      "   Get your API key from: https://platform.openai.com/api-keys\n"
+    );
+    process.exit(1);
+  }
+
   if (
     !process.env.ANTHROPIC_API_KEY ||
     process.env.ANTHROPIC_API_KEY === "your_key_here"
@@ -21,64 +52,85 @@ async function main() {
     process.exit(1);
   }
 
-  // Get Cubby configuration from environment
-  const baseUrl = process.env.CUBBY_API_BASE_URL || "http://localhost:3030";
-  const clientId = process.env.CUBBY_CLIENT_ID;
-  const clientSecret = process.env.CUBBY_CLIENT_SECRET;
+  console.log("🎤 Starting microphone capture...");
 
-  console.log(`📡 Connecting to Cubby at ${baseUrl}...`);
+  // Initialize audio capture and transcription
+  const audioCapture = new AudioCapture();
+  const transcriber = new WhisperTranscriber();
 
   try {
-    const client = createClient({ baseUrl, clientId, clientSecret });
-    const devices = await client.listDevices();
-    if (!devices?.devices?.length) {
-      console.error("error: no devices found");
-      process.exit(1);
-    }
-    client.setDeviceId(String(devices.devices[0].id));
+    // Start capturing audio from microphone
+    const audioStream = audioCapture.start();
 
-    // no filtering: stream everything from the device as { name, data }
-    // example event: { name: "ocr_result", data: { app_name, text, ... } }
-    // for await (const evt of client.streamEvents()) {
-    //   // logs: [event_name] {...data}
-    //   console.log(`[${evt?.name}] ${JSON.stringify(evt?.data)}`);
-    // }
+    console.log("✅ Listening for voice commands...");
+    console.log("   (Speak clearly and pause after each command)\n");
+    console.log("═".repeat(60));
 
-    // how to filter only transcriptions (if your device emits them):
-    for await (const evt of client.streamEvents()) {
-      if (evt?.name === "transcription") {
-        // typical shape: { name: "transcription", data: { text: string, is_final?: boolean, ts?: number, ... } }
-        const { text, is_final } = evt.data || {};
-        console.log(
-          `[transcription] ${is_final ? "final:" : "partial:"} ${text || ""}`
-        );
+    // Process audio chunks as they arrive
+    audioStream.on("data", async (chunk: Buffer) => {
+      // Send audio chunk to Whisper for transcription
+      const text = await transcriber.transcribe(chunk);
+
+      // Only process if we got a transcription back
+      if (text && text.trim()) {
+        console.log(`\n🎤 You said: "${text}"`);
+
+        // Check if the command contains the keyword "claude" (case-insensitive)
+        if (text.toLowerCase().includes("claude")) {
+          console.log("✅ Keyword 'claude' detected - processing command...");
+          console.log("⏳ Processing with Claude...\n");
+
+          try {
+            // Send transcribed command to Claude Computer Use
+            await executeVoiceCommand(text);
+
+            console.log("═".repeat(60));
+            console.log("🎤 Ready for next command...\n");
+          } catch (error) {
+            console.error("❌ Error executing command:", error);
+            console.log("═".repeat(60));
+            console.log("🎤 Ready for next command...\n");
+          }
+        } else {
+          // Command doesn't contain "claude" keyword - skip processing
+          console.log("⏭️  Skipped - command must contain 'claude' to execute");
+          console.log("═".repeat(60));
+          console.log("🎤 Ready for next command...\n");
+        }
       }
-    }
+    });
 
-    // how to filter only vision/ocr frames:
-    // for await (const evt of client.streamEvents()) {
-    //   if (evt?.name === "ocr_result" || evt?.name === "ui_frame") {
-    //     // ocr_result example (from ws): { name: "ocr_result", data: { app_name: string, text: string, confidence: number, ... } }
-    //     const { app_name, text, confidence } = evt.data || {};
-    //     console.log(`[ocr] app=${app_name || "unknown"} conf=${confidence ?? "?"} text=${(text || "").slice(0, 120)}`);
-    //   }
-    // }
+    // Handle audio stream errors
+    audioStream.on("error", (error: Error) => {
+      console.error("❌ Audio stream error:", error);
+      console.error("\nTroubleshooting:");
+      console.error("  1. Check microphone permissions");
+      console.error("  2. Verify microphone is not in use by another app");
+      console.error("  3. Try reconnecting your microphone\n");
+    });
 
-    // Optional: Log other event types for debugging
-    // Uncomment to see what else is coming through:
-    // if (evt?.name === "ocr_result") {
-    //   console.log(`[OCR] ${evt.data?.app_name}: ${evt.data?.text?.slice(0, 50)}...`);
-    // }
+    // Graceful shutdown on Ctrl+C
+    process.on("SIGINT", () => {
+      console.log("\n\n👋 Shutting down gracefully...");
+      audioCapture.stop();
+      console.log("✅ Cleanup complete. Goodbye!");
+      process.exit(0);
+    });
   } catch (error) {
-    console.error("\n❌ Error:", error);
+    console.error("\n❌ Fatal error:", error);
     console.error("\nTroubleshooting:");
-    console.error("  1. Make sure Cubby is running (http://localhost:3030)");
-    console.error("  2. Check that audio recording is enabled in Cubby");
-    console.error("  3. Verify microphone permissions are granted");
-    console.error("  4. Try speaking louder or closer to the microphone\n");
+    console.error("  1. Make sure your microphone is connected");
+    console.error(
+      "  2. Grant microphone permissions to Terminal/your terminal app"
+    );
+    console.error("  3. Check that no other app is using the microphone");
+    console.error("  4. Verify your API keys are correct in .env\n");
     process.exit(1);
   }
 }
 
 // Run the application
-main().catch(console.error);
+main().catch((error) => {
+  console.error("❌ Unhandled error:", error);
+  process.exit(1);
+});

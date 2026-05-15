@@ -11,8 +11,16 @@ export interface TranscriptionEvent {
 }
 
 export interface ComputerAction {
-  action: 'mouse_move' | 'left_click' | 'right_click' | 'type' | 'key' | 'screenshot';
+  action:
+    | "mouse_move"
+    | "left_click"
+    | "right_click"
+    | "middle_click"
+    | "double_click"
+    | "cursor_position"
+    | "type"
+    | "key"
+    | "screenshot";
   coordinate?: [number, number];
   text?: string;
 }
-
